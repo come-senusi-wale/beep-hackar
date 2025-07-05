@@ -66,6 +66,7 @@ pub enum QueryMsg {
 pub struct ConfigResponse {
     pub admin: Addr,
     pub supported_tokens: Vec<String>,
+    pub supported_protocols: Vec<String>,
     pub default_timeout_height: u64,
 }
 

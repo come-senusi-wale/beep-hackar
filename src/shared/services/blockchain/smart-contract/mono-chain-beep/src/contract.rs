@@ -19,7 +19,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
@@ -39,7 +39,8 @@ pub fn instantiate(
         .add_attribute(
             "default_timeout_height",
             msg.default_timeout_height.to_string(),
-        ))
+        )
+        .add_attribute("timestamp", env.block.time.to_string()))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -58,22 +59,22 @@ pub fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> S
         ExecuteMsg::WithdrawIntentFund { intent_id } => {
             execute_withdraw_intent_fund(deps, env, info, intent_id)
         }
-        ExecuteMsg::UpdateAdmin { new_admin } => execute_update_admin(deps, info, new_admin),
+        ExecuteMsg::UpdateAdmin { new_admin } => execute_update_admin(deps, env, info, new_admin),
         ExecuteMsg::AddSupportedTokens { tokens } => {
-            execute_add_supported_tokens(deps, info, tokens)
+            execute_add_supported_tokens(deps, env, info, tokens)
         }
         ExecuteMsg::RemoveSupportedTokens { tokens } => {
-            execute_remove_supported_tokens(deps, info, tokens)
+            execute_remove_supported_tokens(deps, env, info, tokens)
         }
         ExecuteMsg::AddSupportedProtocols { protocols } => {
-            execute_add_supported_protocols(deps, info, protocols)
+            execute_add_supported_protocols(deps, env, info, protocols)
         }
         ExecuteMsg::RemoveSupportedProtocols { protocols } => {
-            execute_remove_supported_protocols(deps, info, protocols)
+            execute_remove_supported_protocols(deps, env, info, protocols)
         }
         ExecuteMsg::UpdateDefaultTimeoutHeight {
             default_timeout_height,
-        } => execute_update_default_timeout_height(deps, info, default_timeout_height),
+        } => execute_update_default_timeout_height(deps, env, info, default_timeout_height),
     }
 }
 
@@ -123,7 +124,8 @@ pub mod execute {
             .add_messages(msgs.clone())
             .add_attribute("action", "create_intent")
             .add_attribute("intent_id", id)
-            .add_attribute("status", "active"))
+            .add_attribute("status", "active")
+            .add_attribute("timestamp", env.block.time.to_string()))
     }
 
     pub fn execute_fill_intent(
@@ -191,7 +193,8 @@ pub mod execute {
             .add_messages(all_msgs)
             .add_attribute("action", "fill_intent")
             .add_attribute("intent_id", intent_id)
-            .add_attribute("executor", info.sender))
+            .add_attribute("executor", info.sender)
+            .add_attribute("timestamp", env.block.time.to_string()))
     }
 
     pub fn execute_withdraw_intent_fund(
@@ -239,11 +242,13 @@ pub mod execute {
 
         Ok(Response::new()
             .add_messages(messages)
-            .add_attribute("action", "withdraw_intent_fund"))
+            .add_attribute("action", "withdraw_intent_fund")
+            .add_attribute("timestamp", env.block.time.to_string()))
     }
 
     pub fn execute_update_admin(
         deps: DepsMut,
+        env: Env,
         info: MessageInfo,
         new_admin: Addr,
     ) -> StdResult<Response> {
@@ -259,11 +264,13 @@ pub mod execute {
         Ok(Response::new()
             .add_attribute("action", "execute_update_admin")
             .add_attribute("old_admin", info.sender.to_string())
-            .add_attribute("new_admin", new_admin.to_string()))
+            .add_attribute("new_admin", new_admin.to_string())
+            .add_attribute("timestamp", env.block.time.to_string()))
     }
 
     pub fn execute_add_supported_tokens(
         deps: DepsMut,
+        env: Env,
         info: MessageInfo,
         tokens: Vec<String>,
     ) -> StdResult<Response> {
@@ -283,11 +290,13 @@ pub mod execute {
 
         Ok(Response::new()
             .add_attribute("action", "execute_add_supported_tokens")
-            .add_attribute("status", "success"))
+            .add_attribute("status", "success")
+            .add_attribute("timestamp", env.block.time.to_string()))
     }
 
     pub fn execute_remove_supported_tokens(
         deps: DepsMut,
+        env: Env,
         info: MessageInfo,
         tokens: Vec<String>,
     ) -> StdResult<Response> {
@@ -305,11 +314,13 @@ pub mod execute {
 
         Ok(Response::new()
             .add_attribute("action", "execute_remove_supported_tokens")
-            .add_attribute("status", "success"))
+            .add_attribute("status", "success")
+            .add_attribute("timestamp", env.block.time.to_string()))
     }
 
     pub fn execute_add_supported_protocols(
         deps: DepsMut,
+        env: Env,
         info: MessageInfo,
         protocols: Vec<String>,
     ) -> StdResult<Response> {
@@ -329,11 +340,13 @@ pub mod execute {
 
         Ok(Response::new()
             .add_attribute("action", "execute_add_supported_protocols")
-            .add_attribute("status", "success"))
+            .add_attribute("status", "success")
+            .add_attribute("timestamp", env.block.time.to_string()))
     }
 
     pub fn execute_remove_supported_protocols(
         deps: DepsMut,
+        env: Env,
         info: MessageInfo,
         protocols: Vec<String>,
     ) -> StdResult<Response> {
@@ -351,11 +364,13 @@ pub mod execute {
 
         Ok(Response::new()
             .add_attribute("action", "execute_remove_supported_protocols")
-            .add_attribute("status", "success"))
+            .add_attribute("status", "success")
+            .add_attribute("timestamp", env.block.time.to_string()))
     }
 
     pub fn execute_update_default_timeout_height(
         deps: DepsMut,
+        env: Env,
         info: MessageInfo,
         default_timeout_height: u64,
     ) -> StdResult<Response> {
@@ -370,7 +385,8 @@ pub mod execute {
 
         Ok(Response::new()
             .add_attribute("action", "execute_update_default_timeout_height")
-            .add_attribute("status", "success"))
+            .add_attribute("status", "success")
+            .add_attribute("timestamp", env.block.time.to_string()))
     }
 
     fn validate_intent_type(intent_type: &IntentType, config: &Config) -> StdResult<()> {
@@ -628,7 +644,7 @@ pub mod execute {
                 instantiate(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
 
             // Ensure the response contains expected attributes
-            assert_eq!(res.attributes.len(), 3);
+            assert_eq!(res.attributes.len(), 4);
             assert_eq!(res.attributes[0].key, "action");
             assert_eq!(res.attributes[0].value, "instantiate");
             assert_eq!(res.attributes[1].key, "admin");
@@ -766,7 +782,7 @@ pub mod execute {
             .unwrap();
 
             // Verify the response attributes
-            assert_eq!(res.attributes.len(), 3);
+            assert_eq!(res.attributes.len(), 4);
             assert_eq!(res.attributes[0].key, "action");
             assert_eq!(res.attributes[0].value, "create_intent");
             assert_eq!(res.attributes[1].key, "intent_id");
@@ -892,7 +908,7 @@ pub mod execute {
             .unwrap();
 
             // Verify the response attributes
-            assert_eq!(res.attributes.len(), 3);
+            assert_eq!(res.attributes.len(), 4);
             assert_eq!(res.attributes[0].key, "action");
             assert_eq!(res.attributes[0].value, "create_intent");
             assert_eq!(res.attributes[1].key, "intent_id");
@@ -1187,7 +1203,7 @@ pub mod execute {
             .unwrap();
 
             // Verify the response attributes
-            assert_eq!(res.attributes.len(), 3);
+            assert_eq!(res.attributes.len(), 4);
             assert_eq!(res.attributes[0].key, "action");
             assert_eq!(res.attributes[0].value, "fill_intent");
             assert_eq!(res.attributes[1].key, "intent_id");
@@ -1365,7 +1381,7 @@ pub mod execute {
             .unwrap();
 
             // Verify the response attributes
-            assert_eq!(res.attributes.len(), 3);
+            assert_eq!(res.attributes.len(), 4);
             assert_eq!(res.attributes[0].key, "action");
             assert_eq!(res.attributes[0].value, "fill_intent");
             assert_eq!(res.attributes[1].key, "intent_id");
@@ -1651,7 +1667,7 @@ pub mod execute {
             .unwrap();
 
             // Verify the response attributes
-            assert_eq!(res.attributes.len(), 1);
+            assert_eq!(res.attributes.len(), 2);
             assert_eq!(res.attributes[0].key, "action");
             assert_eq!(res.attributes[0].value, "withdraw_intent_fund");
 
@@ -1681,6 +1697,7 @@ pub mod execute {
         #[test]
         fn test_execute_update_admin_unauthorized() {
             let mut deps = mock_dependencies();
+            let env = mock_env();
             let info = message_info(&Addr::unchecked("not_admin"), &[]);
 
             // Set up initial config
@@ -1693,8 +1710,12 @@ pub mod execute {
             CONFIG.save(&mut deps.storage, &config).unwrap();
 
             // Attempt to update admin with unauthorized user
-            let result =
-                execute_update_admin(deps.as_mut(), info.clone(), Addr::unchecked("new_admin"));
+            let result = execute_update_admin(
+                deps.as_mut(),
+                env,
+                info.clone(),
+                Addr::unchecked("new_admin"),
+            );
 
             // Verify that an error is returned
             assert!(result.is_err());
@@ -1704,6 +1725,7 @@ pub mod execute {
         #[test]
         fn test_execute_update_admin_success() {
             let mut deps = mock_dependencies();
+            let env = mock_env();
             let info = message_info(&Addr::unchecked("admin"), &[]);
 
             // Set up initial config
@@ -1716,12 +1738,16 @@ pub mod execute {
             CONFIG.save(&mut deps.storage, &config).unwrap();
 
             // Execute update admin
-            let res =
-                execute_update_admin(deps.as_mut(), info.clone(), Addr::unchecked("new_admin"))
-                    .unwrap();
+            let res = execute_update_admin(
+                deps.as_mut(),
+                env,
+                info.clone(),
+                Addr::unchecked("new_admin"),
+            )
+            .unwrap();
 
             // Verify the response attributes
-            assert_eq!(res.attributes.len(), 3);
+            assert_eq!(res.attributes.len(), 4);
             assert_eq!(res.attributes[0].key, "action");
             assert_eq!(res.attributes[0].value, "execute_update_admin");
             assert_eq!(res.attributes[1].key, "old_admin");
@@ -1737,6 +1763,7 @@ pub mod execute {
         #[test]
         fn test_execute_add_supported_tokens_unauthorized() {
             let mut deps = mock_dependencies();
+            let env = mock_env();
             let info = message_info(&Addr::unchecked("not_admin"), &[]);
 
             // Set up initial config
@@ -1751,6 +1778,7 @@ pub mod execute {
             // Attempt to add supported tokens with unauthorized user
             let result = execute_add_supported_tokens(
                 deps.as_mut(),
+                env,
                 info.clone(),
                 vec!["token3".to_string()],
             );
@@ -1763,6 +1791,7 @@ pub mod execute {
         #[test]
         fn test_execute_add_supported_tokens_success() {
             let mut deps = mock_dependencies();
+            let env = mock_env();
             let info = message_info(&Addr::unchecked("admin"), &[]);
 
             // Set up initial config
@@ -1777,13 +1806,14 @@ pub mod execute {
             // Execute add supported tokens
             let res = execute_add_supported_tokens(
                 deps.as_mut(),
+                env,
                 info.clone(),
                 vec!["token3".to_string(), "token4".to_string()],
             )
             .unwrap();
 
             // Verify the response attributes
-            assert_eq!(res.attributes.len(), 2);
+            assert_eq!(res.attributes.len(), 3);
             assert_eq!(res.attributes[0].key, "action");
             assert_eq!(res.attributes[0].value, "execute_add_supported_tokens");
             assert_eq!(res.attributes[1].key, "status");
@@ -1805,6 +1835,7 @@ pub mod execute {
         #[test]
         fn test_execute_add_supported_tokens_duplicates() {
             let mut deps = mock_dependencies();
+            let env = mock_env();
             let info = message_info(&Addr::unchecked("admin"), &[]);
 
             // Set up initial config
@@ -1819,13 +1850,14 @@ pub mod execute {
             // Execute add supported tokens with duplicate entries
             let res = execute_add_supported_tokens(
                 deps.as_mut(),
+                env,
                 info.clone(),
                 vec!["token2".to_string(), "token3".to_string()],
             )
             .unwrap();
 
             // Verify the response attributes
-            assert_eq!(res.attributes.len(), 2);
+            assert_eq!(res.attributes.len(), 3);
             assert_eq!(res.attributes[0].key, "action");
             assert_eq!(res.attributes[0].value, "execute_add_supported_tokens");
             assert_eq!(res.attributes[1].key, "status");
@@ -1846,6 +1878,7 @@ pub mod execute {
         #[test]
         fn test_execute_remove_supported_tokens_unauthorized() {
             let mut deps = mock_dependencies();
+            let env = mock_env();
             let info = message_info(&Addr::unchecked("not_admin"), &[]);
 
             // Set up initial config
@@ -1864,6 +1897,7 @@ pub mod execute {
             // Attempt to remove supported tokens with unauthorized user
             let result = execute_remove_supported_tokens(
                 deps.as_mut(),
+                env,
                 info.clone(),
                 vec!["token2".to_string()],
             );
@@ -1876,6 +1910,7 @@ pub mod execute {
         #[test]
         fn test_execute_remove_supported_tokens_success() {
             let mut deps = mock_dependencies();
+            let env = mock_env();
             let info = message_info(&Addr::unchecked("admin"), &[]);
 
             // Set up initial config
@@ -1894,13 +1929,14 @@ pub mod execute {
             // Execute remove supported tokens
             let res = execute_remove_supported_tokens(
                 deps.as_mut(),
+                env,
                 info.clone(),
                 vec!["token2".to_string(), "token3".to_string()],
             )
             .unwrap();
 
             // Verify the response attributes
-            assert_eq!(res.attributes.len(), 2);
+            assert_eq!(res.attributes.len(), 3);
             assert_eq!(res.attributes[0].key, "action");
             assert_eq!(res.attributes[0].value, "execute_remove_supported_tokens");
             assert_eq!(res.attributes[1].key, "status");
@@ -1914,6 +1950,7 @@ pub mod execute {
         #[test]
         fn test_execute_remove_supported_tokens_not_present() {
             let mut deps = mock_dependencies();
+            let env = mock_env();
             let info = message_info(&Addr::unchecked("admin"), &[]);
 
             // Set up initial config
@@ -1928,13 +1965,14 @@ pub mod execute {
             // Execute remove supported tokens with tokens not in the list
             let res = execute_remove_supported_tokens(
                 deps.as_mut(),
+                env,
                 info.clone(),
                 vec!["token3".to_string()],
             )
             .unwrap();
 
             // Verify the response attributes
-            assert_eq!(res.attributes.len(), 2);
+            assert_eq!(res.attributes.len(), 3);
             assert_eq!(res.attributes[0].key, "action");
             assert_eq!(res.attributes[0].value, "execute_remove_supported_tokens");
             assert_eq!(res.attributes[1].key, "status");
@@ -1951,6 +1989,7 @@ pub mod execute {
         #[test]
         fn test_execute_add_supported_protocols_unauthorized() {
             let mut deps = mock_dependencies();
+            let env = mock_env();
             let info = message_info(&Addr::unchecked("not_admin"), &[]);
 
             // Set up initial config
@@ -1965,6 +2004,7 @@ pub mod execute {
             // Attempt to add supported protocols with unauthorized user
             let result = execute_add_supported_protocols(
                 deps.as_mut(),
+                env,
                 info.clone(),
                 vec!["protocol3".to_string()],
             );
@@ -1977,6 +2017,7 @@ pub mod execute {
         #[test]
         fn test_execute_add_supported_protocols_success() {
             let mut deps = mock_dependencies();
+            let env = mock_env();
             let info = message_info(&Addr::unchecked("admin"), &[]);
 
             // Set up initial config
@@ -1991,13 +2032,14 @@ pub mod execute {
             // Execute add supported protocols
             let res = execute_add_supported_protocols(
                 deps.as_mut(),
+                env,
                 info.clone(),
                 vec!["protocol3".to_string(), "protocol4".to_string()],
             )
             .unwrap();
 
             // Verify the response attributes
-            assert_eq!(res.attributes.len(), 2);
+            assert_eq!(res.attributes.len(), 3);
             assert_eq!(res.attributes[0].key, "action");
             assert_eq!(res.attributes[0].value, "execute_add_supported_protocols");
             assert_eq!(res.attributes[1].key, "status");
@@ -2019,6 +2061,7 @@ pub mod execute {
         #[test]
         fn test_execute_add_supported_protocols_duplicates() {
             let mut deps = mock_dependencies();
+            let env = mock_env();
             let info = message_info(&Addr::unchecked("admin"), &[]);
 
             // Set up initial config
@@ -2033,13 +2076,14 @@ pub mod execute {
             // Execute add supported protocols with duplicate entries
             let res = execute_add_supported_protocols(
                 deps.as_mut(),
+                env,
                 info.clone(),
                 vec!["protocol2".to_string(), "protocol3".to_string()],
             )
             .unwrap();
 
             // Verify the response attributes
-            assert_eq!(res.attributes.len(), 2);
+            assert_eq!(res.attributes.len(), 3);
             assert_eq!(res.attributes[0].key, "action");
             assert_eq!(res.attributes[0].value, "execute_add_supported_protocols");
             assert_eq!(res.attributes[1].key, "status");
@@ -2060,6 +2104,7 @@ pub mod execute {
         #[test]
         fn test_execute_remove_supported_protocols_unauthorized() {
             let mut deps = mock_dependencies();
+            let env = mock_env();
             let info = message_info(&Addr::unchecked("not_admin"), &[]);
 
             // Set up initial config
@@ -2078,6 +2123,7 @@ pub mod execute {
             // Attempt to remove supported protocols with unauthorized user
             let result = execute_remove_supported_protocols(
                 deps.as_mut(),
+                env,
                 info.clone(),
                 vec!["protocol2".to_string()],
             );
@@ -2090,6 +2136,7 @@ pub mod execute {
         #[test]
         fn test_execute_remove_supported_protocols_success() {
             let mut deps = mock_dependencies();
+            let env = mock_env();
             let info = message_info(&Addr::unchecked("admin"), &[]);
 
             // Set up initial config
@@ -2108,13 +2155,14 @@ pub mod execute {
             // Execute remove supported protocols
             let res = execute_remove_supported_protocols(
                 deps.as_mut(),
+                env,
                 info.clone(),
                 vec!["protocol2".to_string(), "protocol3".to_string()],
             )
             .unwrap();
 
             // Verify the response attributes
-            assert_eq!(res.attributes.len(), 2);
+            assert_eq!(res.attributes.len(), 3);
             assert_eq!(res.attributes[0].key, "action");
             assert_eq!(
                 res.attributes[0].value,
@@ -2134,6 +2182,7 @@ pub mod execute {
         #[test]
         fn test_execute_remove_supported_protocols_not_present() {
             let mut deps = mock_dependencies();
+            let env = mock_env();
             let info = message_info(&Addr::unchecked("admin"), &[]);
 
             // Set up initial config
@@ -2148,13 +2197,14 @@ pub mod execute {
             // Execute remove supported protocols with protocols not in the list
             let res = execute_remove_supported_protocols(
                 deps.as_mut(),
+                env,
                 info.clone(),
                 vec!["protocol3".to_string()],
             )
             .unwrap();
 
             // Verify the response attributes
-            assert_eq!(res.attributes.len(), 2);
+            assert_eq!(res.attributes.len(), 3);
             assert_eq!(res.attributes[0].key, "action");
             assert_eq!(
                 res.attributes[0].value,
@@ -2174,6 +2224,7 @@ pub mod execute {
         #[test]
         fn test_execute_update_default_timeout_height_unauthorized() {
             let mut deps = mock_dependencies();
+            let env = mock_env();
             let info = message_info(&Addr::unchecked("not_admin"), &[]);
 
             // Set up initial config
@@ -2186,7 +2237,8 @@ pub mod execute {
             CONFIG.save(&mut deps.storage, &config).unwrap();
 
             // Attempt to update default timeout height with unauthorized user
-            let result = execute_update_default_timeout_height(deps.as_mut(), info.clone(), 300);
+            let result =
+                execute_update_default_timeout_height(deps.as_mut(), env, info.clone(), 300);
 
             // Verify that an error is returned
             assert!(result.is_err());
@@ -2196,6 +2248,7 @@ pub mod execute {
         #[test]
         fn test_execute_update_default_timeout_height_success() {
             let mut deps = mock_dependencies();
+            let env = mock_env();
             let info = message_info(&Addr::unchecked("admin"), &[]);
 
             // Set up initial config
@@ -2208,11 +2261,11 @@ pub mod execute {
             CONFIG.save(&mut deps.storage, &config).unwrap();
 
             // Execute update default timeout height
-            let res =
-                execute_update_default_timeout_height(deps.as_mut(), info.clone(), 300).unwrap();
+            let res = execute_update_default_timeout_height(deps.as_mut(), env, info.clone(), 300)
+                .unwrap();
 
             // Verify the response attributes
-            assert_eq!(res.attributes.len(), 2);
+            assert_eq!(res.attributes.len(), 3);
             assert_eq!(res.attributes[0].key, "action");
             assert_eq!(
                 res.attributes[0].value,
@@ -2259,6 +2312,7 @@ pub mod query {
             admin: config.admin,
             supported_tokens: config.supported_tokens,
             default_timeout_height: config.default_timeout_height,
+            supported_protocols: config.supported_protocols,
         })
     }
 
