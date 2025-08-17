@@ -9,3 +9,13 @@ export  const modifiedPhoneNumber = (mobileNumber:string) => {
       return mobileNumber.toString();
     }
 };
+
+export const generateWhatsappPin = ()  => {
+  // Get the current timestamp in milliseconds
+  const timestamp = Date.now().toString();
+
+  console.log("pin", timestamp)
+  
+  // Take the last 4 digits of the timestamp
+  return timestamp.slice(-4);
+}

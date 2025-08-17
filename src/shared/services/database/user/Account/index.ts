@@ -1,8 +1,12 @@
 import { Schema, model, PaginateModel } from "mongoose";
 import mongoosePaginate from 'mongoose-paginate-v2'
-import { IUserAccount } from "../../../../types/interfaces/responses/user/userAccount.response";
+import { IUserAccount, Referral } from "../../../../types/interfaces/responses/user/userAccount.response";
 import IUserAccountModel from "./type";
 import UserAccountDto from "../../../../types/dtos/user/userAccount.dto";
+
+const ReferralSchema = new Schema<Referral>({
+  phoneNumber: { type: String, required: true },
+});
 
 
 const UserAccountSchema = new Schema<IUserAccount>({
@@ -23,6 +27,14 @@ const UserAccountSchema = new Schema<IUserAccount>({
     balance: {
       type: Number,
       default: 0
+    },
+    referrals: { type: [ReferralSchema], default: [] },
+    whatsappPin: {
+      type: String
+    },
+    requestWhatsappPin: {
+      type: Boolean,
+      default: false
     },
     updatedAt: {
       type: String

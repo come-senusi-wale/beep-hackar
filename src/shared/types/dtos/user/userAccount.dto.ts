@@ -1,4 +1,4 @@
-import { IUserAccount } from "../../interfaces/responses/user/userAccount.response";
+import { IUserAccount, Referral } from "../../interfaces/responses/user/userAccount.response";
 
 class UserAccountDto implements IUserAccount {
     public id?: string;
@@ -7,6 +7,9 @@ class UserAccountDto implements IUserAccount {
     public publicKey: string ;
     public privateKey: string;
     public balance: number;
+    referrals: Referral[];
+    whatsappPin?: string | undefined;
+    requestWhatsappPin: boolean;
     public updatedAt?: Date;
     public createdAt?: Date;
     
@@ -16,7 +19,10 @@ class UserAccountDto implements IUserAccount {
       this.pin = userAccount.pin;
       this.publicKey = userAccount.publicKey;
       this.privateKey = userAccount.privateKey;
-      this.balance = userAccount.balance
+      this.balance = userAccount.balance;
+      this.referrals = userAccount.referrals;
+      this.whatsappPin = userAccount.whatsappPin;
+      this.requestWhatsappPin = userAccount.requestWhatsappPin;
       this.updatedAt = userAccount.updatedAt;
       this.createdAt = userAccount.createdAt;
 
@@ -30,6 +36,9 @@ class UserAccountDto implements IUserAccount {
         publicKey: this.publicKey,
         privateKey: this.privateKey,
         balance: this.balance,
+        referrals: this.referrals,
+        whatsappPin: this.whatsappPin,
+        requestWhatsappPin: this.requestWhatsappPin,
         updatedAt: this.updatedAt ? new Date(this.updatedAt): undefined,
         createdAt: this.createdAt ? new Date(this.createdAt): undefined,
       } as IUserAccount
@@ -41,6 +50,7 @@ class UserAccountDto implements IUserAccount {
           phoneNumber: this.phoneNumber,
           publicKey: this.publicKey,
           balance: this.balance,
+          referrals: this.referrals,
           updatedAt: this.updatedAt ? new Date(this.updatedAt): undefined,
           createdAt: this.createdAt ? new Date(this.createdAt): undefined,
         } as IUserAccount

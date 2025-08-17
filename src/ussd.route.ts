@@ -8,6 +8,8 @@ import DepositService from "./features/user/deposit/deposite.service";
 import ConvertService from "./features/user/convert/convert.service";
 import TransferService from "./features/user/transfer/transfer.service";
 import WithdrawalService from "./features/user/withdraw/withrawal.service";
+import ReferralService from "./features/user/referral/referral.service";
+import AdminUserService from "./features/admin/user/user.service";
 
 
 const encryptionRepo = new EncryptionRepo()
@@ -21,6 +23,8 @@ const depositService = new DepositService({userModel, transactionModel, encrypti
 export const convertService = new ConvertService({userModel, transactionModel, encryptionRepo})
 const transferService = new TransferService({userModel, transactionModel, encryptionRepo})
 const withdrawalService = new WithdrawalService({userModel, transactionModel, withdrawalRequestModel, encryptionRepo})
+const referralService = new ReferralService({userModel, encryptionRepo})
+const adminUserService = new AdminUserService({userModel, encryptionRepo})
 
 export const ussdRoute  = async(req: Request, res: Response) => {
     const {
@@ -143,6 +147,27 @@ export const ussdRoute  = async(req: Request, res: Response) => {
             let account = text.split('*')[3];
             let bank = text.split('*')[4];
             response = await withdrawalService.withdraw(phoneNumber, amount, account, bank)
+        }
+    }else if(text == '8'){
+        response = await referralService.start()
+    }if(text.startsWith('8*')){
+        let parts = text.split('*');
+
+        if (parts.length == 2) {     
+            let pin = text.split('*')[1];
+            response = await referralService.verifyUser(phoneNumber, pin)
+        } else if (parts.length === 3) {
+            let number = text.split('*')[2];
+            response = await referralService.referUser(phoneNumber, number)
+        }
+    }else if(text == '9'){
+        response = await adminUserService.start()
+    }if(text.startsWith('9*')){
+        let parts = text.split('*');
+
+        if (parts.length == 2) {     
+            let pin = text.split('*')[1];
+            response = await adminUserService.verifyUser(phoneNumber, pin)
         }
     }
 

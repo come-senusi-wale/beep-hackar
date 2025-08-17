@@ -68,4 +68,10 @@ export class BeepTxClient {
         ]
     }
 
+    async tokeInfo( ) {
+        return {
+            token_info: {}
+        }
+    }
+
 }

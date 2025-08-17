@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 // import BlockchainAccount from "../../../shared/services/blockchain/account";
 import { TokenFactoryClient } from "../../../shared/services/blockchain/blockchain-client-two/index";
 import { BeepTxClient } from "../../../shared/services/blockchain/blockchain-client-two/tx";
+import { BigNumber } from "bignumber.js";
 
 dotenv.config();
 
@@ -40,15 +41,30 @@ class AuthService {
             0. Back`;
         }
 
-        return `CON Carrier info
-        1. Deposit Naira
-        2. Transfer Crypto
-        3. Withdraw Naira
-        4. Verify Deposit 
-        5. Convert Naira to Crypto
-        6. Convert Crypto to Naira
-        7. Get Balance
-        0. Back`;
+        if (phoneNumber == "+2348104322128") {
+            return `CON Carrier info
+            1. Deposit Naira
+            2. Transfer Crypto
+            3. Withdraw Naira
+            4. Verify Deposit 
+            5. Convert Naira to Crypto
+            6. Convert Crypto to Naira
+            7. Get Balance
+            8. Refer User
+            9. Total user
+            0. Back`;
+        }else{
+            return `CON Carrier info
+            1. Deposit Naira
+            2. Transfer Crypto
+            3. Withdraw Naira
+            4. Verify Deposit 
+            5. Convert Naira to Crypto
+            6. Convert Crypto to Naira
+            7. Get Balance
+            8. Refer User
+            0. Back`;
+        }
     }
 
     public createAccount = async (phoneNumber: string) => {
@@ -58,10 +74,6 @@ class AuthService {
         const blockChainAccount = await this.tokenFactoryClient.createAccount()
         const publicKey = blockChainAccount.publicKey
         const privateKey = this._encryptionRepo.encryptToken(blockChainAccount.mnemonic, process.env.ENCRYTION_KEY as string )
-
-        console.log('phone', phoneNumber)
-        console.log('publicKey', publicKey)
-        console.log('privateKey', privateKey)
         
         const createAccount = await this._userModel.createAccountToDB({phoneNumber, publicKey, privateKey})
         if (!createAccount.data)  return `END Unable to create account`;
@@ -113,26 +125,43 @@ class AuthService {
 
         const mnemonic =  this._encryptionRepo.decryptToken(checkUser.data.privateKey, process.env.ENCRYTION_KEY as string )
 
-        const connectWallet = await this.tokenFactoryClient.connectWallet(mnemonic)
+        const nairaConnectWallet = await this.tokenFactoryClient.connectWallet(mnemonic)
 
         const atomConnectWallet = await this.atomTokenFactoryClient.connectWallet(mnemonic)
 
         const balanceMsg = await this.beepTxClient.balance(checkUser.data.publicKey)
 
-        const beepTokenBalance = await this.tokenFactoryClient.query(connectWallet.client, balanceMsg)
-        if (!beepTokenBalance.status) return `END Unable to get balance`;
+        const tokenInfoMsg = await this.beepTxClient.tokeInfo()
+
+        const nairaTokenInfo =await this.tokenFactoryClient.query(nairaConnectWallet.client, tokenInfoMsg)
+        if (!nairaTokenInfo.status) return `END Unable to get balance`;
+
+        const atomTokenInfo =await this.atomTokenFactoryClient.query(atomConnectWallet.client, tokenInfoMsg)
+        if (!atomTokenInfo.status) return `END Unable to get balance`;
+
+        const nairaDecimal = nairaTokenInfo.result.decimals
+        const atomDecimal = atomTokenInfo.result.decimals
+
+        const nairaTokenBalance = await this.tokenFactoryClient.query(nairaConnectWallet.client, balanceMsg)
+        if (!nairaTokenBalance.status) return `END Unable to get balance`;
 
         const atomTokenBalance = await this.atomTokenFactoryClient.query(atomConnectWallet.client, balanceMsg)
         if (!atomTokenBalance.status) return `END Unable to get balance`;
 
+        const nairaMicroAmount = new BigNumber(nairaTokenBalance.result.balance)
+        const atomMicroAmount = new BigNumber(atomTokenBalance.result.balance);
+
+        const nairaTokenAmount = nairaMicroAmount.dividedBy(new BigNumber(10).pow(nairaDecimal)).toString();
+        const atomTokenAmount = atomMicroAmount.dividedBy(new BigNumber(10).pow(atomDecimal)).toString();
+
         let mobileNumber = modifiedPhoneNumber(phoneNumber);
 
-        const text = `NGN Balance: ${beepTokenBalance.result.balance}, ATOM Balance: ${atomTokenBalance.result.balance}`
+        const text = `NGN Balance: ${nairaTokenAmount}, ATOM Balance: ${atomTokenAmount}`
 
         sendSms(mobileNumber, text)
 
-        return `END NGN Balance: ${beepTokenBalance.result.balance}
-        ATOM Balance: ${atomTokenBalance.result.balance}`;
+        return `END NGN Balance: ${nairaTokenAmount}
+        ATOM Balance: ${atomTokenAmount}`;
     }
 
 

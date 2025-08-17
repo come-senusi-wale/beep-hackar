@@ -7,6 +7,7 @@ import { ussdRoute, convertService } from "./ussd.route";
 import { fillIntent } from "./shared/services/blockchain/intent-executor";
 import { example } from "./shared/services/blockchain/smart-contract-client/mono-chain-beep";
 import { setInterval } from "timers/promises";
+import { whatSappRoute } from "./whatsapp";
 
 dotenv.config();
 
@@ -53,19 +54,21 @@ const MONGODB_URI = process.env.MONGODB_URI as string;
     }
 })();
 
+whatSappRoute()
+
 app.post('/ussd', ussdRoute) 
 
 const sleep = (ms: number | undefined) => {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-(async () => {
-  await fillIntent();
+// (async () => {
+//   await fillIntent();
 
-  sleep(3000);
+//   sleep(3000);
   
-  await example().catch(console.error);
-})();
+//   await example().catch(console.error);
+// })();
 
 
 // Start Server

@@ -101,5 +101,54 @@ export class TokenFactoryClient {
             return {status: false, message: "Unable to perform transaction"}
         }
     }
+
+    async estimateContractExecutionGas  (
+        mnemonic: string,
+        // contractAddress: string,
+        msg: Record<string, any>,
+    ){
+        try {
+
+            const prefix = "neutron";
+
+            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(mnemonic, {
+            prefix: prefix,
+            });
+            const [account] = await wallet.getAccounts();
+        
+            const gasPrice = GasPrice.fromString("0.025untrn"); // Adjust if Neutron uses a different rate
+        
+            const client = await SigningCosmWasmClient.connectWithSigner(this.rpcEndpoint, wallet, {
+            //   prefix: prefix,
+            gasPrice,
+            });
+        
+            const gasUsed = await client.simulate(account.address, [
+            {
+                typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+                value: {
+                sender: account.address,
+                contract: this.changeContractAddress,
+                msg: new TextEncoder().encode(JSON.stringify(msg)),
+                funds: [],
+                },
+            },
+            
+            ], "");
+        
+            const feeAmount = Math.ceil(gasUsed * gasPrice.amount.toFloatApproximation());
+        
+            return {
+                gasUsed,
+                fee: {
+                    amount: [{ denom: "untrn", amount: feeAmount.toString() }],
+                    gas: gasUsed.toString(),
+                },
+            };
+        } catch (error) {
+            console.log('error', error)
+            return {status: false, message: "Unable to perform transaction"}
+        }
+    };
 }
 

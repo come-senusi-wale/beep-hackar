@@ -1,4 +1,3 @@
-// import fetch from "node-fetch";
 
 export const sendSms = async (to: any, sms: any)=>{
     const data = {

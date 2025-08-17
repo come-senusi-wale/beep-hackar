@@ -1,13 +1,13 @@
-import IUserAccountModel from "../../../shared/services/database/user/Account/type";
-import ITransactionModel from "../../../shared/services/database/user/transaction/type";
-import EncryptionInterface from "../../../shared/services/encryption/type";
-import { PaystackService } from "../../../shared/services/paystack/paystack.service";
-import { sendSms } from "../../../shared/services/sms/termii";
-import { TransactionStatus, TransactionTypeEnum } from "../../../shared/types/interfaces/responses/user/transaction.response";
-import { modifiedPhoneNumber } from "../../../shared/constant/mobileNumberFormatter";
+import IUserAccountModel from "../../../../shared/services/database/user/Account/type";
+import ITransactionModel from "../../../../shared/services/database/user/transaction/type";
+import EncryptionInterface from "../../../../shared/services/encryption/type";
+import { PaystackService } from "../../../../shared/services/paystack/paystack.service";
+import { sendSms } from "../../../../shared/services/sms/termii";
+import { TransactionStatus, TransactionTypeEnum } from "../../../../shared/types/interfaces/responses/user/transaction.response";
+import { generateWhatsappPin, modifiedPhoneNumber } from "../../../../shared/constant/mobileNumberFormatter";
 import dotenv from "dotenv";
-import { TokenFactoryClient } from "../../../shared/services/blockchain/blockchain-client-two/index";
-import { BeepTxClient } from "../../../shared/services/blockchain/blockchain-client-two/tx";
+import { TokenFactoryClient } from "../../../../shared/services/blockchain/blockchain-client-two/index";
+import { BeepTxClient } from "../../../../shared/services/blockchain/blockchain-client-two/tx";
 
 dotenv.config();
 
@@ -30,27 +30,45 @@ class TransferService {
         this._encryptionRepo = encryptionRepo
     }
 
-    public start = async () => {
-        return `CON Enter PIN `;
-    }
-
-    public verifyUser = async (phoneNumber: string, pin: string) => {
+    public start = async (msg: any, phoneNumber: string,) => {
         const checkUser = await this._userModel.checkIfExist({phoneNumber})
-        if (!checkUser.data) return `END Unable to get your account`;
+        if (!checkUser.data) return msg.reply(`END Unable to get your account`);
 
-        const veryPin = this._encryptionRepo.comparePassword(pin, checkUser.data.pin)
-        if (!veryPin) return `END Incorrect PIN`;
+        const whatsappPin = generateWhatsappPin();
 
-        return `CON Enter Amount`;
+        const updateUserWhatsappPin = await this._userModel.updateAccount(phoneNumber, {whatsappPin, requestWhatsappPin: true})
+        if (!updateUserWhatsappPin.status) return msg.reply(`END Unable to carry out transaction`);
+
+        let mobileNumber = modifiedPhoneNumber(phoneNumber);
+
+        const text = `Hello dear, use this number ${whatsappPin} to verify ur Transaction on Whatsapp`
+
+        sendSms(mobileNumber, text)
+
+        return msg.reply(`Enter Pin sent to your phone number to continue this transaction`)
     }
 
-    public enterAddress = async () => {
-        return `CON Enter wallet Address `;
-    }
-
-    public transfer = async (phoneNumber: string, amount: string, address: string) => {
+    public verifyUser = async (msg: any, phoneNumber: string, pin: string) => {
         const checkUser = await this._userModel.checkIfExist({phoneNumber})
-        if (!checkUser.data) return `END Unable to get your account`;
+        if (!checkUser.data) return msg.reply(`Unable to get your account`);
+
+        if (!checkUser.data.requestWhatsappPin)  return msg.reply(`Please restart the transaction by sending start`);
+
+        if (checkUser.data.whatsappPin != pin) return msg.reply(`Incorrect PIN`);
+
+        const updateUserWhatsappPin = await this._userModel.updateAccount(phoneNumber, {requestWhatsappPin: false})
+        if (!updateUserWhatsappPin.status) return msg.reply(`END Unable to carry out transaction`);
+
+        return msg.reply(`Enter Amount`);
+    }
+
+    public enterAddress = async (msg: any) => {
+        return msg.reply(`Enter wallet Address`);
+    }
+
+    public transfer = async (msg: any, phoneNumber: string, amount: string, address: string) => {
+        const checkUser = await this._userModel.checkIfExist({phoneNumber})
+        if (!checkUser.data) return msg.reply(`Unable to get your account`);
         const  {id} = checkUser.data
 
         console.log(1)
@@ -69,7 +87,7 @@ class TransferService {
         console.log(12)
 
         console.log(2)
-        if (!nativeTokenBal.status) return `END Unable to carry out Transaction`;
+        if (!nativeTokenBal.status) return msg.reply(`Unable to carry out Transaction`);
 
         console.log(3)
 
@@ -80,7 +98,7 @@ class TransferService {
             console.log(12)
             const transferNativeToken = await this.tokenFactoryClient.sendNativeToken(adminConnectWallet.client, adminConnectWallet.sender, checkUser.data.publicKey, coinMsg )
             console.log(13)
-            if (!transferNativeToken.status) return `END Unable to carry out Transaction`;
+            if (!transferNativeToken.status) return msg.reply(`Unable to carry out Transaction`);
             console.log(14)
         }
 
@@ -90,14 +108,14 @@ class TransferService {
         console.log(5)
 
         const getBeepTokenBalance = await this.tokenFactoryClient.query(connectWallet.client, balanceMsg)
-        if (!getBeepTokenBalance.status) return `END Unable to carry out Transaction`;
+        if (!getBeepTokenBalance.status) return msg.reply(`Unable to carry out Transaction`);
 
-        if ((getBeepTokenBalance.result.balance / 1000000) < parseFloat(amount)) return `END Insufficient balance`;
+        if ((getBeepTokenBalance.result.balance / 1000000) < parseFloat(amount)) return msg.reply(`Insufficient balance`);
 
         console.log(6)
 
         const transferToken = await this.tokenFactoryClient.tx(connectWallet.client, connectWallet.sender, transferMsg)
-        if (!transferToken.status) return `END Unable to create transaction`;
+        if (!transferToken.status) return msg.reply(`Unable to create transaction`);
 
         const reference = this.generateUniqueCode()
 
@@ -105,7 +123,7 @@ class TransferService {
 
         console.log(7)
 
-        return `END Transaction in progress`;
+        return msg.reply(`Transaction in progress`);
     }
 
      generateUniqueCode() {
